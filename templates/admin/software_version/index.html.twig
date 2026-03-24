@@ -1,0 +1,253 @@
+{# ==========================================================================
+   Admin Panel: Software Versions Listing
+   
+   Displays all firmware versions grouped by product name (e.g., "MMI Prime CIC").
+   Each product group is a collapsible card showing a table of its versions.
+   LCI products are visually distinguished with a blue-tinted header.
+   
+   Features:
+     - Collapsible product groups for easy navigation
+     - Version count badges per product
+     - "Latest" version badges
+     - Truncated download links with full URL on hover
+     - Edit and Delete actions per version
+     - "Add New Version" button at the top
+   ========================================================================== #}
+{% extends 'admin/base.html.twig' %}
+
+{% block admin_title %}Software Versions{% endblock %}
+
+{% block admin_content %}
+{# =========================================================================
+   Page Header with Add New button
+   ========================================================================= #}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Software Versions</h2>
+        <p class="text-muted mb-0">
+            Manage firmware versions for all CarPlay / Android Auto MMI products.
+        </p>
+    </div>
+    <a href="{{ path('admin_software_versions_new') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Add New Version
+    </a>
+</div>
+
+{# =========================================================================
+   Quick Stats Summary
+   ========================================================================= #}
+{% set total_versions = 0 %}
+{% set total_products = grouped_versions|keys|length %}
+{% for name, versions in grouped_versions %}
+    {% set total_versions = total_versions + versions|length %}
+{% endfor %}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <h4 class="mb-0">{{ total_products }}</h4>
+                <small class="text-muted">Product Groups</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <h4 class="mb-0">{{ total_versions }}</h4>
+                <small class="text-muted">Total Versions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <h4 class="mb-0">
+                    {% set latest_count = 0 %}
+                    {% for name, versions in grouped_versions %}
+                        {% for v in versions %}
+                            {% if v.isLatest %}
+                                {% set latest_count = latest_count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ latest_count }}
+                </h4>
+                <small class="text-muted">Latest Versions Marked</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# =========================================================================
+   Product Groups - Collapsible Cards
+   Each product (e.g., "MMI Prime CIC") gets its own card with a table
+   of all its firmware versions.
+   ========================================================================= #}
+{% if grouped_versions is empty %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        No software versions found. Click "Add New Version" to create the first one.
+    </div>
+{% else %}
+    {% for productName, versions in grouped_versions %}
+        {% set is_lci = productName starts with 'LCI' %}
+        {% set collapse_id = 'collapse-' ~ loop.index %}
+
+        <div class="product-group-card">
+            {# Product group header (click to expand/collapse) #}
+            <div class="product-group-header {{ is_lci ? 'lci' : '' }}"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#{{ collapse_id }}">
+                <h5>
+                    {% if is_lci %}
+                        <i class="bi bi-star-fill text-info me-2" title="LCI Hardware"></i>
+                    {% else %}
+                        <i class="bi bi-cpu me-2"></i>
+                    {% endif %}
+                    {{ productName }}
+                </h5>
+                <div>
+                    <span class="badge bg-secondary">{{ versions|length }} version{{ versions|length > 1 ? 's' : '' }}</span>
+                    <i class="bi bi-chevron-down ms-2"></i>
+                </div>
+            </div>
+
+            {# Collapsible version table #}
+            <div class="collapse show" id="{{ collapse_id }}">
+                <table class="table version-table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>System Version</th>
+                            <th>Version Alt</th>
+                            <th>General Link</th>
+                            <th>ST Link</th>
+                            <th>GD Link</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in versions %}
+                        <tr>
+                            {# System version with 'v' prefix #}
+                            <td>
+                                <strong>{{ v.systemVersion }}</strong>
+                            </td>
+
+                            {# Alternative version (what customers type) #}
+                            <td>
+                                <code>{{ v.systemVersionAlt }}</code>
+                            </td>
+
+                            {# General download link (truncated) #}
+                            <td>
+                                {% if v.link %}
+                                    <a href="{{ v.link }}" target="_blank"
+                                       class="link-truncate" title="{{ v.link }}">
+                                        {{ v.link }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+
+                            {# ST firmware link #}
+                            <td>
+                                {% if v.stLink %}
+                                    <a href="{{ v.stLink }}" target="_blank"
+                                       class="link-truncate" title="{{ v.stLink }}">
+                                        {{ v.stLink }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+
+                            {# GD firmware link #}
+                            <td>
+                                {% if v.gdLink %}
+                                    <a href="{{ v.gdLink }}" target="_blank"
+                                       class="link-truncate" title="{{ v.gdLink }}">
+                                        {{ v.gdLink }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+
+                            {# Latest version badge #}
+                            <td>
+                                {% if v.isLatest %}
+                                    <span class="badge-latest">
+                                        <i class="bi bi-check-circle me-1"></i>Latest
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            {# Edit and Delete action buttons #}
+                            <td class="text-end">
+                                <a href="{{ path('admin_software_versions_edit', {id: v.id}) }}"
+                                   class="btn btn-sm btn-outline-primary me-1"
+                                   title="Edit this version">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+
+                                {# Delete button with confirmation modal trigger #}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        title="Delete this version"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal-{{ v.id }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+
+                                {# Delete confirmation modal (prevents accidental deletion) #}
+                                <div class="modal fade" id="deleteModal-{{ v.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Confirm Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <p>Are you sure you want to delete this software version?</p>
+                                                <ul class="list-unstyled">
+                                                    <li><strong>Product:</strong> {{ v.name }}</li>
+                                                    <li><strong>Version:</strong> {{ v.systemVersion }}</li>
+                                                </ul>
+                                                {% if v.isLatest %}
+                                                    <div class="alert alert-warning py-2 mb-0">
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                                        <strong>Warning:</strong> This is currently the latest version
+                                                        for this product. Deleting it means no version will be marked
+                                                        as latest.
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    Cancel
+                                                </button>
+                                                <form action="{{ path('admin_software_versions_delete', {id: v.id}) }}"
+                                                      method="post" style="display:inline;">
+                                                    <input type="hidden" name="_token"
+                                                           value="{{ csrf_token('delete' ~ v.id) }}">
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="bi bi-trash me-1"></i> Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

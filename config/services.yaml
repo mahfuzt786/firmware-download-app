@@ -1,0 +1,20 @@
+# =============================================================================
+# Service Container Configuration
+# =============================================================================
+# Configures autowiring and autoconfiguration for the application services.
+# This enables automatic dependency injection throughout the app.
+# =============================================================================
+services:
+    # Default configuration for services in this file
+    _defaults:
+        autowire: true       # Automatically inject dependencies in services
+        autoconfigure: true  # Automatically apply known tags to services
+
+    # Makes classes in src/ available as services
+    # This creates a service per class whose ID is the fully-qualified class name
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'

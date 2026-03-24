@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Symfony Console entry point.
+ * Used for all CLI commands: database setup, fixtures loading, cache clearing, etc.
+ *
+ * Usage examples:
+ *   php bin/console doctrine:database:create
+ *   php bin/console doctrine:schema:create
+ *   php bin/console doctrine:fixtures:load
+ *   php bin/console cache:clear
+ */
+
+use App\Kernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+
+if (!is_file(dirname(__DIR__).'/vendor/autoload_runtime.php')) {
+    throw new LogicException('Symfony Runtime is missing. Try running "composer require symfony/runtime".');
+}
+
+require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
+
+return function (array $context) {
+    $kernel = new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);
+
+    return new Application($kernel);
+};

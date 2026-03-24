@@ -1,0 +1,10 @@
+# =============================================================================
+# Route Configuration
+# =============================================================================
+# Routes are defined using PHP attributes in controller classes.
+# =============================================================================
+controllers:
+    resource:
+        path: ../src/Controller/
+        namespace: App\Controller
+    type: attribute

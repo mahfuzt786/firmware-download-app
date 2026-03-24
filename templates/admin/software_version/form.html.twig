@@ -1,0 +1,150 @@
+{# ==========================================================================
+   Admin Panel: Create / Edit Software Version Form
+   
+   Shared template for both creating new versions and editing existing ones.
+   The `is_new` variable determines the page title and submit button text.
+   
+   Form fields are rendered using Bootstrap 5 form theme (configured in twig.yaml).
+   Each field includes help text to guide non-technical users.
+   ========================================================================== #}
+{% extends 'admin/base.html.twig' %}
+
+{% block admin_title %}{{ is_new ? 'Add New Version' : 'Edit Version' }}{% endblock %}
+
+{% block admin_content %}
+{# =========================================================================
+   Page Header with Back button
+   ========================================================================= #}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">{{ is_new ? 'Add New Software Version' : 'Edit Software Version' }}</h2>
+        <p class="text-muted mb-0">
+            {% if is_new %}
+                Add a new firmware version entry for a product.
+            {% else %}
+                Editing <strong>{{ version.systemVersion }}</strong> for <strong>{{ version.name }}</strong>.
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ path('admin_software_versions_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to List
+    </a>
+</div>
+
+{# =========================================================================
+   Version Form
+   ========================================================================= #}
+<div class="card">
+    <div class="card-body p-4">
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'class': 'needs-validation'}}) }}
+
+        {# ---- Product Selection ---- #}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>Product Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form_row(form.name) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---- Version Strings ---- #}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-tag me-2"></i>Version Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form_row(form.systemVersion) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form_row(form.systemVersionAlt) }}
+                    </div>
+                </div>
+
+                {# Helpful reference for version naming conventions #}
+                <div class="alert alert-info py-2 mt-2" style="font-size: 13px;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Version Format Guide:</strong><br>
+                    <ul class="mb-0 mt-1">
+                        <li><strong>System Version</strong> includes the "v" prefix: <code>v3.3.7.mmipri.c</code></li>
+                        <li><strong>System Version (Alt)</strong> is the same without "v": <code>3.3.7.mmipri.c</code></li>
+                        <li>Suffix meanings: <code>.c</code> = CIC, <code>.b</code> = NBT, <code>.e</code> = EVO</li>
+                        <li><code>mmipri</code> = MMI Prime, <code>mmipro</code> = MMI PRO, <code>mmiprilci</code> / <code>mmiprolci</code> = LCI variants</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# ---- Download Links ---- #}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-download me-2"></i>Download Links</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        {{ form_row(form.link) }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form_row(form.stLink) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form_row(form.gdLink) }}
+                    </div>
+                </div>
+
+                {# Helpful reference for which links are needed per product type #}
+                <div class="alert alert-warning py-2 mt-2" style="font-size: 13px;">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Which links are needed?</strong><br>
+                    <ul class="mb-0 mt-1">
+                        <li><strong>CIC</strong> products: ST link only (GD not applicable)</li>
+                        <li><strong>NBT / EVO</strong> standard products: Both ST and GD links</li>
+                        <li><strong>LCI CIC</strong> products: ST link only</li>
+                        <li><strong>LCI NBT / LCI EVO</strong> products: GD link only</li>
+                        <li>The <strong>latest</strong> version typically has no download links (users are already up to date)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# ---- Latest Version Flag ---- #}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-check-circle me-2"></i>Version Status</h6>
+            </div>
+            <div class="card-body">
+                {{ form_row(form.isLatest) }}
+
+                <div class="alert alert-secondary py-2 mt-2" style="font-size: 13px;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    When you mark a version as "latest", the previous latest version for the same product
+                    will be automatically unmarked. Customers who have the latest version will see
+                    "Your system is up to date!" instead of download links.
+                </div>
+            </div>
+        </div>
+
+        {# ---- Submit / Cancel Buttons ---- #}
+        <div class="d-flex justify-content-between">
+            <a href="{{ path('admin_software_versions_index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-check-lg me-1"></i>
+                {{ is_new ? 'Create Version' : 'Save Changes' }}
+            </button>
+        </div>
+
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

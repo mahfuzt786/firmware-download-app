@@ -1,0 +1,646 @@
+{# ==========================================================================
+   Customer-facing firmware download check page.
+   Replicates the look and behavior of the original software.vue page.
+   
+   Users enter their Software Version and HW Version, then click "Check"
+   to find out if a firmware update is available. The form submits via
+   AJAX (fetch API) to the /api/software/version endpoint.
+   ========================================================================== #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Software Download - BimmerTech{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* =====================================================================
+       Software Download Page Styles
+       Replicates the original Vuetify-based design using plain CSS.
+       ===================================================================== */
+    body {
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 0;
+    }
+
+    #software-download {
+        font-family: 'Rubik', sans-serif;
+        color: #212121;
+        text-align: center;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px 16px;
+    }
+
+    /* Title section with box shadow (matches original design) */
+    .section-title {
+        box-shadow: inset 2px 3px 5px #00000040, 2px 3px 5px #00000040;
+        border: 1px solid #FFFFFF;
+        border-radius: 20px;
+        padding: 24px;
+        max-width: 590px;
+        margin: 0 auto;
+        background: #FFFFFF;
+    }
+
+    .section-title h1 {
+        font-size: 42px;
+        line-height: 48px;
+        letter-spacing: -0.48px;
+        color: #212121;
+        font-weight: 300;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    .section-title h1 .bold {
+        font-size: 36px;
+        letter-spacing: -0.36px;
+        font-weight: 700;
+    }
+
+    /* Card container styling */
+    .card-container {
+        background: #FFFFFF;
+        border-radius: 4px;
+        padding: 24px;
+        margin-top: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    /* Form styling */
+    .version-form {
+        margin-top: 40px;
+        position: relative;
+    }
+
+    .form-group {
+        max-width: 400px;
+        margin: 0 auto 16px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 12px;
+        color: rgba(0,0,0,0.6);
+        margin-bottom: 4px;
+        text-align: left;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #E0E0E0;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: 'Rubik', sans-serif;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 1px #1976d2;
+    }
+
+    .form-group input:disabled {
+        background-color: #f2f2f2;
+        cursor: not-allowed;
+    }
+
+    .form-group .error-text {
+        color: #ff5252;
+        font-size: 12px;
+        margin-top: 4px;
+        display: none;
+    }
+
+    .form-group.has-error input {
+        border-color: #ff5252;
+    }
+
+    .form-group.has-error .error-text {
+        display: block;
+    }
+
+    /* Check button */
+    .btn-check-version {
+        background-color: #1976d2;
+        color: #FFFFFF;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: 'Rubik', sans-serif;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: background-color 0.2s;
+    }
+
+    .btn-check-version:hover {
+        background-color: #1565c0;
+    }
+
+    .btn-check-version:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    /* Info tooltip */
+    .info-icon {
+        color: #757575;
+        font-size: 20px;
+        margin-left: 8px;
+        cursor: help;
+        vertical-align: middle;
+    }
+
+    /* Result alerts */
+    .alert-result {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .alert-success-result {
+        background-color: #f6ffed;
+        border: 1px solid #b7eb8f;
+    }
+
+    .alert-success-result p {
+        color: #389e0d !important;
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .alert-error-result {
+        background-color: #fff2f0;
+        border: 1px solid #ffccc7;
+    }
+
+    .alert-error-result p {
+        color: red !important;
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .download-link {
+        color: #389e0d;
+        text-transform: uppercase;
+        font-size: 16px !important;
+        text-decoration: underline;
+        margin-left: 8px;
+    }
+
+    .download-link:hover {
+        color: #237804;
+    }
+
+    /* Warning box */
+    .warning-box {
+        background-color: #fff8e1;
+        border: 1px solid #ffe082;
+        border-radius: 4px;
+        padding: 16px;
+        margin-top: 16px;
+        text-align: left;
+    }
+
+    .warning-box strong {
+        color: #212121;
+    }
+
+    .warning-box p {
+        color: #212121;
+        margin: 8px 0 0;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    /* Modal overlay for "What is my current software?" */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #FFFFFF;
+        border-radius: 4px;
+        max-width: 70%;
+        max-height: 90vh;
+        overflow: auto;
+        position: relative;
+    }
+
+    .modal-header {
+        background: black;
+        padding: 8px 16px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 4px 8px;
+    }
+
+    .modal-body img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    /* Loading spinner overlay */
+    .loading-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .loading-overlay.active {
+        display: flex;
+    }
+
+    .spinner {
+        width: 3em;
+        height: 3em;
+        border: 0.2em solid rgba(0, 0, 0, 0.1);
+        border-top-color: #757575;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* "What is my software" link */
+    .software-help-link {
+        color: #1976d2;
+        text-decoration: underline;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    /* Footer section */
+    .footer-section {
+        margin-top: 16px;
+        background: #FFFFFF;
+        border-radius: 4px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    .btn-shop {
+        background-color: #1976d2;
+        color: #FFFFFF;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 4px;
+        font-size: 14px;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+    }
+
+    .btn-shop:hover {
+        background-color: #1565c0;
+        color: #FFFFFF;
+    }
+
+    .disclaimer {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #757575;
+        line-height: 20px;
+    }
+
+    /* Responsive adjustments */
+    @media only screen and (max-width: 767px) {
+        .section-title {
+            padding: 14px;
+        }
+        .section-title h1 {
+            font-size: 35px;
+            line-height: 40px;
+            letter-spacing: -0.35px;
+        }
+        .section-title h1 .bold {
+            font-size: 27px;
+            line-height: 40px;
+            letter-spacing: -0.27px;
+        }
+        .modal-content {
+            max-width: 95%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="software-download">
+    {# =====================================================================
+       Main Card: Title + Version Check Form
+       ===================================================================== #}
+    <div class="card-container">
+        {# Title section matching original design #}
+        <div class="section-title">
+            <h1>
+                <span class="bold">Update the software for your</span><br>
+                CarPlay / Android Auto MMI
+            </h1>
+        </div>
+
+        {# Version check form - submits via AJAX #}
+        <form id="versionForm" class="version-form" onsubmit="return false;">
+            {# Loading spinner overlay (shown during API call) #}
+            <div id="loadingOverlay" class="loading-overlay">
+                <div class="spinner"></div>
+            </div>
+
+            {# Software Version input #}
+            <div class="form-group" id="versionGroup">
+                <label for="version">Software Version</label>
+                <input type="text"
+                       id="version"
+                       name="version"
+                       placeholder="Your software version*"
+                       autocomplete="off">
+                <div class="error-text">This field is required</div>
+            </div>
+
+            {# MCU Version input (disabled - not required) #}
+            <div class="form-group">
+                <label for="mcuVersion">MCU Version Not Required</label>
+                <input type="text"
+                       id="mcuVersion"
+                       name="mcuVersion"
+                       placeholder="Not Required"
+                       disabled>
+            </div>
+
+            {# HW Version input #}
+            <div class="form-group" id="hwVersionGroup">
+                <label for="hwVersion">HW Version</label>
+                <input type="text"
+                       id="hwVersion"
+                       name="hwVersion"
+                       placeholder="Your HW version*"
+                       autocomplete="off">
+                <div class="error-text">This field is required</div>
+            </div>
+
+            {# Check button + info tooltip #}
+            <div style="margin-top: 12px;">
+                <button type="button"
+                        id="checkBtn"
+                        class="btn-check-version"
+                        onclick="checkSoftware()">
+                    Check
+                </button>
+                <span class="info-icon"
+                      title="Enter your current software version to check if there is an update available. You can find your current software in MMI settings > System > System/firmware version."
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="bottom">
+                    <i class="bi bi-info-circle"></i>
+                </span>
+            </div>
+
+            {# Result display area (hidden by default) #}
+            <div id="resultArea" style="display: none;"></div>
+
+            {# "What is my current software?" help link #}
+            <p style="margin-top: 12px;">
+                <a class="software-help-link" onclick="openModal()">
+                    What is my current software?
+                </a>
+            </p>
+
+            {# Warning box about incorrect firmware #}
+            <div class="warning-box">
+                <strong>Warning!!!</strong>
+                <p>
+                    Entering an incorrect software number and uploading it to another version of MMI will brick the MMI.<br>
+                    In most cases, this is a reversible process, but impossible to perform without the assistance of our support.<br>
+                    BimmerTech is not responsible for errors in software uploading by customers due to uploading the incorrect version.<br>
+                    After this step, replacement under warranty cannot be considered.
+                </p>
+            </div>
+        </form>
+    </div>
+
+    {# =====================================================================
+       Footer Card: Shop Link + Disclaimer
+       ===================================================================== #}
+    <div class="footer-section">
+        <a href="https://newshop.testshop1.bimmer-tech.net/"
+           target="_blank"
+           class="btn-shop">
+            Go back to the shop
+        </a>
+        <p class="disclaimer">
+            BMW and MINI are registered trademarks of Bayerische Motoren Werke AG.
+            BimmerTech is not affiliated with BMW AG in any way, and is not authorized
+            by BMW AG to act as an official distributor or representative.
+        </p>
+    </div>
+</div>
+
+{# =========================================================================
+   Modal: "What is my current software?" help image
+   Shows a screenshot of where to find the software version in MMI settings.
+   ========================================================================= #}
+<div id="softwareModal" class="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            {# NOTE: Replace this placeholder with the actual mmi_software_version.jpg image.
+               Place the image file at public/images/mmi_software_version.jpg #}
+            <div style="padding: 40px; text-align: center; background: #f5f5f5;">
+                <i class="bi bi-image" style="font-size: 48px; color: #ccc;"></i>
+                <p style="color: #757575; margin-top: 12px;">
+                    Screenshot showing where to find your software version.<br>
+                    <strong>MMI Settings &gt; System &gt; System/firmware version</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+/**
+ * =========================================================================
+ * Firmware Version Check - Client-Side JavaScript
+ * =========================================================================
+ * Handles form validation, AJAX submission to the API endpoint,
+ * and displaying the appropriate result to the customer.
+ * =========================================================================
+ */
+
+// Initialize Bootstrap tooltips on page load
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(
+        document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    tooltipTriggerList.map(function (el) {
+        return new bootstrap.Tooltip(el);
+    });
+});
+
+/**
+ * Validate the form and submit the version check request via AJAX.
+ * Called when the user clicks the "Check" button.
+ */
+async function checkSoftware() {
+    // Clear previous validation errors
+    document.getElementById('versionGroup').classList.remove('has-error');
+    document.getElementById('hwVersionGroup').classList.remove('has-error');
+
+    var version = document.getElementById('version').value.trim();
+    var hwVersion = document.getElementById('hwVersion').value.trim();
+    var valid = true;
+
+    // Client-side validation: both fields are required
+    if (!version) {
+        document.getElementById('versionGroup').classList.add('has-error');
+        valid = false;
+    }
+    if (!hwVersion) {
+        document.getElementById('hwVersionGroup').classList.add('has-error');
+        valid = false;
+    }
+    if (!valid) return;
+
+    // Show loading spinner and disable the button
+    document.getElementById('loadingOverlay').classList.add('active');
+    document.getElementById('checkBtn').disabled = true;
+
+    try {
+        // Build form data for POST request (matching original axios.post format)
+        var formData = new FormData();
+        formData.append('version', version);
+        formData.append('mcuVersion', document.getElementById('mcuVersion').value);
+        formData.append('hwVersion', hwVersion);
+
+        // Send POST request to the API endpoint
+        var response = await fetch('/api/software/version', {
+            method: 'POST',
+            body: formData
+        });
+
+        var data = await response.json();
+
+        // Build the result HTML based on the API response
+        var resultArea = document.getElementById('resultArea');
+        resultArea.style.display = 'block';
+
+        if (data.versionExist) {
+            // Version found - show success message with optional download links
+            var html = '<div class="alert-result alert-success-result"><p>' + escapeHtml(data.msg);
+
+            // Show ST download link if available
+            if (data.st) {
+                html += ' <a href="' + escapeHtml(data.st) + '" target="_blank" class="download-link">ST Version</a>';
+            }
+
+            // Show GD download link if available
+            if (data.gd) {
+                html += ' <a href="' + escapeHtml(data.gd) + '" target="_blank" class="download-link">GD Version</a>';
+            }
+
+            html += '</p></div>';
+            resultArea.innerHTML = html;
+        } else if (data.msg) {
+            // Error or version not found - show error message
+            resultArea.innerHTML = '<div class="alert-result alert-error-result"><p>' +
+                escapeHtml(data.msg) + '</p></div>';
+        }
+
+    } catch (error) {
+        // Network or unexpected error
+        console.error('Error:', error);
+        var resultArea = document.getElementById('resultArea');
+        resultArea.style.display = 'block';
+        resultArea.innerHTML = '<div class="alert-result alert-error-result"><p>' +
+            'Failed to fetch software details. Please try again.</p></div>';
+    } finally {
+        // Hide loading spinner and re-enable the button
+        document.getElementById('loadingOverlay').classList.remove('active');
+        document.getElementById('checkBtn').disabled = false;
+    }
+}
+
+/**
+ * Escape HTML special characters to prevent XSS.
+ * @param {string} text - The text to escape
+ * @returns {string} The escaped text
+ */
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+/**
+ * Open the "What is my current software?" modal dialog.
+ */
+function openModal() {
+    document.getElementById('softwareModal').classList.add('active');
+}
+
+/**
+ * Close the modal dialog.
+ */
+function closeModal() {
+    document.getElementById('softwareModal').classList.remove('active');
+}
+
+/**
+ * Close the modal when clicking outside of it (on the overlay).
+ * @param {Event} event - The click event
+ */
+function closeModalOutside(event) {
+    if (event.target === document.getElementById('softwareModal')) {
+        closeModal();
+    }
+}
+
+// Allow pressing Enter to submit the form
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('checkBtn').disabled) {
+        checkSoftware();
+    }
+});
+</script>
+{% endblock %}

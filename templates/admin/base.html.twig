@@ -1,0 +1,170 @@
+{# ==========================================================================
+   Base template for the admin panel.
+   Extends the main base layout and adds admin-specific navigation and styling.
+   ========================================================================== #}
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin - {% block admin_title %}Software Versions{% endblock %}{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* =====================================================================
+       Admin Panel Styles
+       Clean, professional layout using Bootstrap 5 with custom tweaks.
+       ===================================================================== */
+    body {
+        background-color: #f8f9fa;
+        font-family: 'Rubik', sans-serif;
+    }
+
+    .admin-navbar {
+        background-color: #1a1a2e !important;
+    }
+
+    .admin-navbar .navbar-brand {
+        font-weight: 700;
+        color: #ffffff !important;
+        font-size: 18px;
+    }
+
+    .admin-navbar .nav-link {
+        color: rgba(255,255,255,0.8) !important;
+    }
+
+    .admin-navbar .nav-link:hover {
+        color: #ffffff !important;
+    }
+
+    .admin-content {
+        padding: 24px 0;
+    }
+
+    /* Product group cards in the listing */
+    .product-group-card {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .product-group-header {
+        background-color: #e9ecef;
+        padding: 12px 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+    }
+
+    .product-group-header:hover {
+        background-color: #dee2e6;
+    }
+
+    .product-group-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .product-group-header .badge {
+        font-size: 12px;
+    }
+
+    /* LCI product groups get a distinct header color */
+    .product-group-header.lci {
+        background-color: #d1ecf1;
+    }
+
+    .product-group-header.lci:hover {
+        background-color: #bee5eb;
+    }
+
+    /* Version table within product groups */
+    .version-table {
+        margin-bottom: 0;
+        font-size: 14px;
+    }
+
+    .version-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+    }
+
+    .version-table td {
+        vertical-align: middle;
+    }
+
+    /* Latest version badge */
+    .badge-latest {
+        background-color: #28a745;
+        color: white;
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    /* Link truncation for long Google Drive URLs */
+    .link-truncate {
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    /* Flash message styling */
+    .flash-messages {
+        margin-bottom: 20px;
+    }
+
+    /* Form help text enhancement */
+    .form-text {
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{# =========================================================================
+   Admin Navigation Bar
+   ========================================================================= #}
+<nav class="navbar navbar-expand-lg admin-navbar">
+    <div class="container">
+        <a class="navbar-brand" href="{{ path('admin_software_versions_index') }}">
+            <i class="bi bi-gear-fill me-2"></i>BimmerTech Admin
+        </a>
+        <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+            <a class="nav-link" href="{{ path('software_download') }}" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>View Public Page
+            </a>
+            <a class="nav-link" href="{{ path('admin_logout') }}" title="Sign out">
+                <i class="bi bi-box-arrow-right me-1"></i>Logout
+            </a>
+        </div>
+    </div>
+</nav>
+
+{# =========================================================================
+   Main Admin Content Area
+   ========================================================================= #}
+<div class="container admin-content">
+    {# Flash messages (success/error notifications) #}
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ label }} alert-dismissible fade show flash-messages" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {% block admin_content %}{% endblock %}
+</div>
+{% endblock %}
