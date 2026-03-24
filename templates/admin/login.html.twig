@@ -217,7 +217,7 @@
         position: relative;
     }
 
-    .input-wrapper i {
+    .input-wrapper > i {
         position: absolute;
         left: 14px;
         top: 50%;
@@ -241,6 +241,11 @@
         transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    /* Keep room for the eye icon inside password input */
+    #password {
+        padding-right: 44px;
+    }
+
     .input-wrapper input:focus {
         border-color: #6366f1;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
@@ -254,7 +259,7 @@
     /* Password toggle */
     .toggle-password {
         position: absolute;
-        right: 14px;
+        right: 10px;
         top: 50%;
         transform: translateY(-50%);
         background: none;
@@ -266,6 +271,15 @@
         pointer-events: all;
         transition: color 0.2s;
         z-index: 2;
+    }
+
+    .toggle-password i {
+        position: static;
+        left: auto;
+        top: auto;
+        transform: none;
+        pointer-events: none;
+        color: currentColor;
     }
 
     .toggle-password:hover {

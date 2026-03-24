@@ -244,7 +244,8 @@ When a new firmware release comes out:
 2. Click the **trash icon** (🗑️) next to it
 3. Confirm the deletion in the popup dialog
 
-> ⚠️ If you delete a version marked as "latest", no version will be marked as latest for that product until you mark another one.
+> ℹ️ If you delete a version marked as "latest", the system automatically marks the newest remaining version for that product as latest.
+> If no versions remain for that product, then none will be marked latest.
 
 ---
 

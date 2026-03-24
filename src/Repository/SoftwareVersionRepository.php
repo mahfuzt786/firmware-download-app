@@ -116,4 +116,21 @@ class SoftwareVersionRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    /**
+     * Find the most recently added version for a product.
+     *
+     * Used as a fallback when the current latest version is deleted,
+     * so the newest remaining version can be promoted to latest.
+     */
+    public function findMostRecentByProduct(string $productName): ?SoftwareVersion
+    {
+        return $this->createQueryBuilder('sv')
+            ->where('sv.name = :name')
+            ->setParameter('name', $productName)
+            ->orderBy('sv.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

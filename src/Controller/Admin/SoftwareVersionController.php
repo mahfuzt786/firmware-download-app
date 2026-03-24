@@ -110,9 +110,31 @@ class SoftwareVersionController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             // If marking as latest, unmark previous latest for this product
             if ($version->isLatest()) {
-                $repository->unmarkLatestForProduct($version->getName());
-                // Re-set the flag since unmarkLatestForProduct clears ALL latest
-                // flags for this product (including the current one being edited)
+                // Snapshot all form values before the DQL bulk update,
+                // because we need to refresh the entity afterwards and
+                // refresh() would overwrite the user's edits.
+                $formData = [
+                    'name'             => $version->getName(),
+                    'systemVersion'    => $version->getSystemVersion(),
+                    'systemVersionAlt' => $version->getSystemVersionAlt(),
+                    'link'             => $version->getLink(),
+                    'stLink'           => $version->getStLink(),
+                    'gdLink'           => $version->getGdLink(),
+                ];
+
+                $repository->unmarkLatestForProduct($formData['name']);
+
+                // Refresh syncs in-memory state with DB (where isLatest is now false).
+                // Without this, setIsLatest(true) is a no-op to Doctrine's change tracker.
+                $em->refresh($version);
+
+                // Re-apply all form values that refresh() just overwrote
+                $version->setName($formData['name']);
+                $version->setSystemVersion($formData['systemVersion']);
+                $version->setSystemVersionAlt($formData['systemVersionAlt']);
+                $version->setLink($formData['link']);
+                $version->setStLink($formData['stLink']);
+                $version->setGdLink($formData['gdLink']);
                 $version->setIsLatest(true);
             }
 
@@ -145,16 +167,28 @@ class SoftwareVersionController extends AbstractController
     public function delete(
         SoftwareVersion $version,
         Request $request,
-        EntityManagerInterface $em
+        EntityManagerInterface $em,
+        SoftwareVersionRepository $repository
     ): Response {
         // Verify CSRF token to prevent unauthorized deletions
         $token = $request->request->get('_token');
         if ($this->isCsrfTokenValid('delete' . $version->getId(), $token)) {
             $name = $version->getName();
             $sysVersion = $version->getSystemVersion();
+            $wasLatest = $version->isLatest();
 
             $em->remove($version);
             $em->flush();
+
+            // If latest was deleted, auto-promote the newest remaining version.
+            if ($wasLatest) {
+                $replacement = $repository->findMostRecentByProduct($name);
+                if ($replacement !== null) {
+                    $replacement->setIsLatest(true);
+                    $replacement->setUpdatedAt(new \DateTimeImmutable());
+                    $em->flush();
+                }
+            }
 
             $this->addFlash('success', sprintf(
                 'Software version "%s" for %s has been deleted.',

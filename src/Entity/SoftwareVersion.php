@@ -189,6 +189,14 @@ class SoftwareVersion
         return $this->isLatest;
     }
 
+    /**
+     * Getter alias for form/data mappers that expect get* naming.
+     */
+    public function getIsLatest(): bool
+    {
+        return $this->isLatest;
+    }
+
     public function setIsLatest(bool $isLatest): static
     {
         $this->isLatest = $isLatest;
