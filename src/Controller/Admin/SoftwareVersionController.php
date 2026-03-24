@@ -21,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
  *   - Delete software version entries
  *
  * All routes are prefixed with /admin/software-versions and require ROLE_ADMIN.
- * Authentication is handled via HTTP Basic Auth (see security.yaml).
+ * Authentication is handled via Symfony form_login with database-backed users.
  */
 #[Route('/admin/software-versions')]
 class SoftwareVersionController extends AbstractController

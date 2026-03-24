@@ -104,7 +104,9 @@ If you need raw SQL syntax equivalent to `firmware-download-app/var/data.db`, us
 - `data/software_versions_seed.sql`
 
 This file contains:
+- `CREATE TABLE admin_users (...)`
 - `CREATE TABLE software_versions (...)`
+- seeded admin user (`admin`)
 - all `INSERT INTO software_versions ...` statements (116 rows)
 - index creation statements
 
@@ -193,7 +195,7 @@ Navigating to the admin panel redirects to a dedicated login page at `/admin/log
 - **Username**: `admin`
 - **Password**: `admin123`
 
-> ⚠️ **Important**: Change these credentials in `config/packages/security.yaml` before deploying to production.
+> ⚠️ **Important**: Credentials are now stored in the `admin_users` database table.
 
 After logging in, the admin panel shows:
 - Summary statistics (total products, versions, latest versions marked)
@@ -366,28 +368,33 @@ firmware-download-app/
 │       ├── doctrine.yaml        # Database configuration
 │       ├── framework.yaml       # Symfony framework settings
 │       ├── routing.yaml         # Router configuration
-│       ├── security.yaml        # Admin authentication (credentials here)
+│       ├── security.yaml        # Admin authentication (DB-backed provider)
 │       ├── twig.yaml            # Template engine configuration
 │       └── validator.yaml       # Form validation settings
 ├── data/
-│   └── softwareversions.json    # Seed data (all original versions)
+│   ├── softwareversions.json    # Seed data (all original versions)
+│   └── software_versions_seed.sql # SQL dump including admin_users + software_versions
 ├── migrations/                  # Doctrine migrations (empty - using schema:create)
 ├── public/
 │   └── index.php                # Application entry point
 ├── src/
 │   ├── Controller/
 │   │   ├── Admin/
+│   │   │   ├── LoginController.php            # Admin login/logout routes
 │   │   │   └── SoftwareVersionController.php  # Admin CRUD operations
 │   │   ├── ApiController.php                  # API endpoint (version check)
 │   │   └── SoftwareDownloadController.php     # Public page controller
 │   ├── DataFixtures/
-│   │   └── SoftwareVersionFixtures.php        # Database seeder
+│   │   ├── AdminUserFixtures.php              # Default admin account seeder
+│   │   └── SoftwareVersionFixtures.php        # Software versions seeder
 │   ├── Entity/
-│   │   └── SoftwareVersion.php                # Database entity definition
+│   │   ├── AdminUser.php                      # Admin auth user entity
+│   │   └── SoftwareVersion.php                # Firmware version entity
 │   ├── Form/
 │   │   └── SoftwareVersionType.php            # Admin form definition
 │   ├── Repository/
-│   │   └── SoftwareVersionRepository.php      # Database query methods
+│   │   ├── AdminUserRepository.php            # Admin user queries
+│   │   └── SoftwareVersionRepository.php      # Firmware query methods
 │   └── Kernel.php                             # Application kernel
 ├── templates/
 │   ├── admin/
@@ -436,12 +443,16 @@ php bin/console doctrine:fixtures:load --no-interaction
 ```
 
 ### Changing admin credentials
-Edit `config/packages/security.yaml` and update the `users` section:
-```yaml
-users:
-    your_username:
-        password: 'your_new_password'
-        roles: ['ROLE_ADMIN']
+Update the `admin_users` table (password must be hashed).
+
+Generate a bcrypt hash:
+```bash
+php -r "echo password_hash('your_new_password', PASSWORD_BCRYPT), PHP_EOL;"
+```
+
+Then update the DB row:
+```bash
+php bin/console dbal:run-sql "UPDATE admin_users SET password = 'PASTE_HASH_HERE' WHERE username = 'admin'"
 ```
 
 ### API returns empty or unexpected results

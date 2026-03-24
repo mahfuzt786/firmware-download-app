@@ -2,7 +2,22 @@
 -- Equivalent dataset for firmware-download-app/var/data.db
 BEGIN TRANSACTION;
 
+DROP TABLE IF EXISTS admin_users;
 DROP TABLE IF EXISTS software_versions;
+
+CREATE TABLE admin_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    username VARCHAR(180) NOT NULL,
+    roles CLOB NOT NULL --(DC2Type:json)
+    ,
+    password VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL
+);
+
+INSERT INTO admin_users (username, roles, password, created_at, updated_at) VALUES
+('admin', '["ROLE_ADMIN"]', '$2y$10$AXlyQ3kQj4P7DAPu0.dT.e.M2nne09qtA4sCxFOSF7Hu3LjDSVCnK', '2026-03-24 13:22:42', '2026-03-24 13:22:42');
+
 CREATE TABLE software_versions (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name VARCHAR(100) NOT NULL,
@@ -133,6 +148,7 @@ INSERT INTO software_versions (name, system_version, system_version_alt, link, s
 INSERT INTO software_versions (name, system_version, system_version_alt, link, st_link, gd_link, is_latest, created_at, updated_at) VALUES ('LCI MMI PRO EVO', 'v3.4.2.mmiprolci', '3.4.2.mmiprolci', NULL, NULL, 'https://drive.google.com/drive/folders/1Xgj1DXUHMbQON6Sm_wYB76H04HkYBNHV', 0, '2026-03-24 13:22:42', '2026-03-24 13:22:42');
 INSERT INTO software_versions (name, system_version, system_version_alt, link, st_link, gd_link, is_latest, created_at, updated_at) VALUES ('LCI MMI PRO EVO', 'v3.4.4.mmiprolci', '3.4.4.mmiprolci', NULL, NULL, NULL, 1, '2026-03-24 13:22:42', '2026-03-24 13:22:42');
 
+CREATE UNIQUE INDEX uniq_admin_users_username ON admin_users (username);
 CREATE INDEX idx_name ON software_versions (name);
 CREATE INDEX idx_is_latest ON software_versions (is_latest);
 CREATE INDEX idx_system_version_alt ON software_versions (system_version_alt);
